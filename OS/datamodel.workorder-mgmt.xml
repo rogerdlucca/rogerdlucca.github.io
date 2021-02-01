@@ -1,0 +1,813 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<itop_design xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2">
+  <constants>
+  </constants>
+  <classes>
+    <class id="ScheduledActivity" _delta="define">
+      <parent>Ticket</parent>
+      <properties>
+        <comment><![CDATA[/**
+ * Scheduled Activity classes for Work Order Management module
+ *
+ * @copyright   Copyright (C) 2015 Vladimir Kunin <v.b.kunin@gmail.com>
+ * @license     http://opensource.org/licenses/AGPL-3.0
+ */]]></comment>
+        <category>bizmodel,searchable,structure</category>
+        <abstract>false</abstract>
+        <key_type>autoincrement</key_type>
+        <db_table>scheduledactivity</db_table>
+        <db_key_field>id</db_key_field>
+        <db_final_class_field/>
+        <naming>
+          <attributes>
+            <attribute id="title"/>
+          </attributes>
+        </naming>
+        <display_template/>
+        <icon>images/timetable48.png</icon>
+        <reconciliation>
+          <attributes>
+            <attribute id="title"/>
+            <attribute id="org_id"/>
+            <attribute id="org_name"/>
+          </attributes>
+        </reconciliation>
+      </properties>
+      <fields>
+        <field id="category_id" xsi:type="AttributeExternalKey">
+          <sql>category_id</sql>
+          <target_class>ScheduledActivityCategory</target_class>
+          <is_null_allowed>true</is_null_allowed>
+          <on_target_delete>DEL_MANUAL</on_target_delete>
+        </field>
+        <field id="category_name" xsi:type="AttributeExternalField">
+          <extkey_attcode>category_id</extkey_attcode>
+          <target_attcode>name</target_attcode>
+        </field>
+        <field id="status" xsi:type="AttributeEnum">
+          <values>
+            <value id="active">active</value>
+            <value id="inactive">inactive</value>
+          </values>
+          <sql>status</sql>
+          <default_value>inactive</default_value>
+          <is_null_allowed>false</is_null_allowed>
+          <display_style>select</display_style>
+        </field>
+        <field id="periodicity" xsi:type="AttributeString">
+          <sql>periodicity</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+          <validation_pattern>^[\*,/\-0-9]+\s[\*,/\-0-9]+\s[\*,/\-\?LW0-9A-Za-z]+\s[\*,/\-0-9A-Z]+\s(\*|([0-7]|(SUN|MON|TUE|WED|THU|FRI|SAT))(L?|#[1-5]))([/\,\-]([0-7]|(SUN|MON|TUE|WED|THU|FRI|SAT))+)*(\s[\*,/\-0-9]*)?$</validation_pattern>
+        </field>
+        <field id="action_date" xsi:type="AttributeDateTime">
+          <always_load_in_tables>true</always_load_in_tables>
+          <sql>action_date</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <!-- Preliminary action params -->
+        <field id="pre_action_enabled" xsi:type="AttributeEnum">
+          <values>
+            <value id="0">0</value>
+            <value id="1">1</value>
+          </values>
+          <sql>pre_action_enabled</sql>
+          <default_value>0</default_value>
+          <is_null_allowed>true</is_null_allowed>
+          <display_style>radio_horizontal</display_style>
+        </field>
+        <field id="pre_action_interval" xsi:type="AttributeDuration">
+          <always_load_in_tables>true</always_load_in_tables>
+          <sql>pre_action_interval</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="pre_action_date" xsi:type="AttributeDateTime">
+          <always_load_in_tables>true</always_load_in_tables>
+          <sql>pre_action_date</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <!-- WorkOrder template attributes -->
+        <field id="wo_name" xsi:type="AttributeString">
+          <sql>wo_name</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="wo_description" xsi:type="AttributeText">
+          <sql>wo_description</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="wo_team_id" xsi:type="AttributeExternalKey">
+          <filter>SELECT Team</filter>
+          <sql>wo_team_id</sql>
+          <target_class>Team</target_class>
+          <is_null_allowed>true</is_null_allowed>
+          <on_target_delete>DEL_MANUAL</on_target_delete>
+        </field>
+        <field id="wo_agent_id" xsi:type="AttributeExternalKey">
+          <filter><![CDATA[SELECT Person AS p JOIN lnkPersonToTeam AS l ON l.person_id=p.id JOIN Team AS t ON l.team_id=t.id WHERE t.id = :this->wo_team_id]]></filter>
+          <dependencies>
+            <attribute id="wo_team_id"/>
+          </dependencies>
+          <sql>wo_agent_id</sql>
+          <target_class>Person</target_class>
+          <is_null_allowed>true</is_null_allowed>
+          <on_target_delete>DEL_MANUAL</on_target_delete>
+          <allow_target_creation>false</allow_target_creation>
+        </field>
+        <field id="wo_duration" xsi:type="AttributeDuration">
+          <always_load_in_tables>true</always_load_in_tables>
+          <sql>wo_duration</sql>
+          <default_value/>
+          <is_null_allowed>true</is_null_allowed>
+        </field>
+        <field id="document_list" xsi:type="AttributeLinkedSetIndirect">
+          <linked_class>lnkDocumentToTicket</linked_class>
+          <ext_key_to_me>ticket_id</ext_key_to_me>
+          <count_min>0</count_min>
+          <count_max>0</count_max>
+          <ext_key_to_remote>document_id</ext_key_to_remote>
+          <duplicates/>
+        </field>
+        <!-- <field id="services_list" xsi:type="AttributeLinkedSetIndirect">
+          <linked_class>lnkServiceToScheduledActivity</linked_class>
+          <ext_key_to_me>scheduledactivity_id</ext_key_to_me>
+          <count_min>0</count_min>
+          <count_max>0</count_max>
+          <ext_key_to_remote>service_id</ext_key_to_remote>
+          <duplicates/>
+        </field> -->
+      </fields>
+      <lifecycle>
+        <attribute>status</attribute>
+        <highlight_scale>
+          <item id="active">
+            <rank>1</rank>
+            <color>HIGHLIGHT_CLASS_OK</color>
+            <icon>images/timetable48.png</icon>
+          </item>
+        </highlight_scale>
+        <stimuli>
+          <stimulus id="ev_activate" xsi:type="StimulusUserAction"/>
+          <stimulus id="ev_deactivate" xsi:type="StimulusUserAction"/>
+        </stimuli>
+        <states>
+          <state id="inactive">
+            <flags>
+              <attribute id="status">
+                <read_only/>
+              </attribute>
+              <attribute id="action_date">
+                <read_only/>
+              </attribute>
+              <attribute id="pre_action_date">
+                <read_only/>
+              </attribute>
+              <attribute id="private_log">
+                <hidden/>
+              </attribute>
+            </flags>
+            <transitions>
+              <transition id="ev_activate">
+                <target>active</target>
+                <actions/>
+              </transition>
+            </transitions>
+          </state>
+          <state id="active">
+            <highlight>
+              <code>active</code>
+            </highlight>
+            <inherit_flags_from>inactive</inherit_flags_from>
+            <flags>
+              <attribute id="periodicity">
+                <mandatory/>
+                <must_prompt/>
+              </attribute>
+              <attribute id="pre_action_enabled">
+                <mandatory/>
+                <must_prompt/>
+              </attribute>
+              <attribute id="pre_action_interval">
+                <must_prompt/>
+              </attribute>
+              <attribute id="start_date">
+                <must_prompt/>
+              </attribute>
+              <attribute id="end_date">
+                <must_prompt/>
+              </attribute>
+            </flags>
+            <transitions>
+              <transition id="ev_deactivate">
+                <target>inactive</target>
+                <actions/>
+              </transition>
+            </transitions>
+          </state>
+        </states>
+      </lifecycle>
+      <methods>
+        <method id="GetActionDate">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              public function GetActionDate($iCurrentTime = null, $bRetInt = false, $bAllowCurrentTime = false)
+              {
+                $iCurrentTime || $iCurrentTime = time();
+                $iStartDate = $this->Get('start_date') ? AttributeDateTime::GetAsUnixSeconds($this->Get('start_date')) : 0;
+                if ($iStartDate > $iCurrentTime) {
+                  $bAllowCurrentTime = true;
+                  $iCurrentTime = $iStartDate;
+                }
+                try {
+                  $oCron = Cron\CronExpression::factory($this->Get('periodicity'));
+                  $iActionDate = $oCron->getNextRunDate("@$iCurrentTime", 0, $bAllowCurrentTime)->getTimestamp();
+                } catch(Exception $e) {
+                  error_log($e);
+                  return null;
+                }
+                $iEndDate = $this->Get('end_date') ? AttributeDateTime::GetAsUnixSeconds($this->Get('end_date')) : 0;
+                if ($iEndDate && $iActionDate > $iEndDate) return null;
+                if ($bRetInt) return $iActionDate;
+                return date(AttributeDateTime::GetDateFormat(), $iActionDate);
+              }
+            ]]>
+          </code>
+        </method>
+        <method id="GetPreActionDate">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              public function GetPreActionDate()
+              {
+                $iNow = time();
+                $iPreActionInrerval = $this->GetPreActionInterval();
+                $iActionDate = $iNow;
+                do {
+                  $iActionDate = $this->GetActionDate($iActionDate, true);
+                  if (is_null($iActionDate)) return null;
+                  $iPreActionDate = $iActionDate - $iPreActionInrerval;
+                } while ($iNow >= $iPreActionDate);
+                return date(AttributeDateTime::GetDateFormat(), $iPreActionDate);
+              }
+            ]]>
+          </code>
+        </method>
+        <method id="GetPreActionInterval">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              public function GetPreActionInterval()
+              {
+                $iValue = $this->Get('pre_action_interval');
+                $iMaxInterval = 2678400; // Max interval 2678400 seconds (31 days)
+                return $iPreActionInrerval = $iValue < $iMaxInterval ? $iValue : $iMaxInterval;
+              }
+            ]]>
+          </code>
+        </method>
+        <method id="SetActionDate">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              public function SetActionDate()
+              {
+                $sActionDate = $this->GetActionDate() ?: '';
+                $this->Set('action_date', $sActionDate);
+                if ($sActionDate == '') return false;
+                return true;
+              }
+            ]]>
+          </code>
+        </method>
+        <method id="SetPreActionDate">
+          <static>false</static>
+          <access>public</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              public function SetPreActionDate()
+              {
+                $sPreActionDate = $this->GetPreActionDate() ?: '';
+                $this->Set('pre_action_date', $sPreActionDate);
+                if ($sPreActionDate == '') return false;
+                return true;
+              }
+            ]]>
+          </code>
+        </method>
+        <method id="OnUpdate">
+          <static>false</static>
+          <access>protected</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              protected function OnUpdate()
+              {
+                // TODO: Перенести вызов при сохранении через веб-интерфейс
+                $now = date(AttributeDateTime::GetDateFormat());
+                $end = $this->Get('end_date');
+                $start = $this->Get('start_date');
+                if ($this->Get('status') == 'active' && (!$end || $end > $now) && (!$start || $end >= $start))
+                {
+                  $this->SetActionDate(); // TODO: Добавить деактивацию, если следующая дата запуска будет после даты окончания
+                  ($this->Get('pre_action_enabled') && $this->SetPreActionDate()) || $this->Reset('pre_action_date');
+                }
+                else
+                {
+                  $this->ApplyStimulus('ev_deactivate');
+                  $this->Reset('action_date');
+                  $this->Reset('pre_action_date');
+                }
+              }
+            ]]>
+          </code>
+        </method>
+        <method id="OnInsert">
+          <static>false</static>
+          <access>protected</access>
+          <type>Overload-DBObject</type>
+          <code>
+            <![CDATA[
+              protected function OnInsert()
+              {
+                $this->OnUpdate();
+              }
+            ]]>
+          </code>
+        </method>
+      </methods>
+      <presentation>
+        <details>
+          <items>
+            <item id="contacts_list">
+              <rank>10</rank>
+            </item>
+            <item id="document_list">
+              <rank>20</rank>
+            </item>
+            <item id="functionalcis_list">
+              <rank>30</rank>
+            </item>
+            <item id="workorders_list">
+              <rank>40</rank>
+            </item>
+            <!-- <item id="services_list">
+              <rank>50</rank>
+            </item> -->
+            <item id="col:col1">
+              <rank>60</rank>
+              <items>
+                <item id="fieldset:ScheduledActivity:baseinfo">
+                  <rank>10</rank>
+                  <items>
+                    <item id="title">
+                      <rank>10</rank>
+                    </item>
+                    <item id="org_id">
+                      <rank>20</rank>
+                    </item>
+                    <item id="caller_id">
+                      <rank>25</rank>
+                    </item>
+                    <item id="team_id">
+                      <rank>30</rank>
+                    </item>
+                    <item id="agent_id">
+                      <rank>40</rank>
+                    </item>
+                    <item id="category_id">
+                      <rank>50</rank>
+                    </item>
+                    <item id="description">
+                      <rank>60</rank>
+                    </item>
+                    <item id="status">
+                      <rank>70</rank>
+                    </item>
+                     <item id="start_date">
+                      <rank>80</rank>
+                    </item>
+                    <item id="end_date">
+                      <rank>90</rank>
+                    </item>
+                    <item id="periodicity">
+                      <rank>100</rank>
+                    </item>
+                    <item id="action_date">
+                      <rank>110</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+            <item id="col:col2">
+              <rank>70</rank>
+              <items>
+                <item id="fieldset:ScheduledActivity:preaction">
+                  <rank>10</rank>
+                  <items>
+                    <item id="pre_action_enabled">
+                      <rank>10</rank>
+                    </item>
+                    <item id="pre_action_interval">
+                      <rank>20</rank>
+                    </item>
+                    <item id="pre_action_date">
+                      <rank>30</rank>
+                    </item>
+                  </items>
+                </item>
+                <item id="fieldset:ScheduledActivity:template">
+                  <rank>20</rank>
+                  <items>
+                    <item id="wo_name">
+                      <rank>10</rank>
+                    </item>
+                    <item id="wo_description">
+                      <rank>20</rank>
+                    </item>
+                    <item id="wo_team_id">
+                      <rank>30</rank>
+                    </item>
+                    <item id="wo_agent_id">
+                      <rank>40</rank>
+                    </item>
+                    <item id="wo_duration">
+                      <rank>50</rank>
+                    </item>
+                  </items>
+                </item>
+              </items>
+            </item>
+          </items>
+        </details>
+        <search>
+          <items>
+            <item id="title">
+              <rank>10</rank>
+            </item>
+            <item id="org_id">
+              <rank>20</rank>
+            </item>
+            <item id="caller_id">
+              <rank>25</rank>
+            </item>
+            <item id="team_id">
+              <rank>30</rank>
+            </item>
+            <item id="agent_id">
+              <rank>40</rank>
+            </item>
+            <item id="category_id">
+              <rank>50</rank>
+            </item>
+            <item id="status">
+              <rank>60</rank>
+            </item>
+             <item id="start_date">
+              <rank>70</rank>
+            </item>
+            <item id="end_date">
+              <rank>80</rank>
+            </item>
+            <item id="action_date">
+              <rank>90</rank>
+            </item>
+            <item id="pre_action_date">
+              <rank>100</rank>
+            </item>
+            <item id="pre_action_enabled">
+              <rank>110</rank>
+            </item>
+          </items>
+        </search>
+        <list>
+          <items>
+            <item id="org_id">
+              <rank>10</rank>
+            </item>
+            <item id="category_id">
+              <rank>20</rank>
+            </item>
+            <item id="caller_id">
+              <rank>25</rank>
+            </item>
+            <item id="team_id">
+              <rank>30</rank>
+            </item>
+            <item id="agent_id">
+              <rank>40</rank>
+            </item>
+            <item id="status">
+              <rank>50</rank>
+            </item>
+             <item id="start_date">
+              <rank>60</rank>
+            </item>
+            <item id="end_date">
+              <rank>70</rank>
+            </item>
+            <item id="action_date">
+              <rank>80</rank>
+            </item>
+            <item id="periodicity">
+              <rank>90</rank>
+            </item>
+            <item id="pre_action_date">
+              <rank>100</rank>
+            </item>
+          </items>
+        </list>
+      </presentation>
+    </class>
+    <class id="ScheduledActivityCategory" _delta="define">
+      <parent>Typology</parent>
+      <properties>
+        <category>bizmodel,searchable</category>
+        <abstract>false</abstract>
+        <key_type>autoincrement</key_type>
+        <db_table>scheduledactivitycategory</db_table>
+        <db_key_field>id</db_key_field>
+        <db_final_class_field/>
+        <naming>
+          <attributes>
+            <attribute id="name"/>
+          </attributes>
+        </naming>
+        <display_template/>
+        <icon/>
+        <reconciliation>
+          <attributes>
+            <attribute id="name"/>
+          </attributes>
+        </reconciliation>
+      </properties>
+      <fields>
+        <field id="scheduledactivities_list" xsi:type="AttributeLinkedSet">
+          <linked_class>ScheduledActivity</linked_class>
+          <ext_key_to_me>category_id</ext_key_to_me>
+          <edit_mode>add_only</edit_mode>
+          <count_min>0</count_min>
+          <count_max>0</count_max>
+          <duplicates/>
+        </field>
+      </fields>
+      <methods/>
+      <presentation>
+        <details>
+          <items>
+            <item id="name">
+              <rank>10</rank>
+            </item>
+            <item id="scheduledactivities_list">
+              <rank>20</rank>
+            </item>
+          </items>
+        </details>
+        <search>
+          <items>
+            <item id="name">
+              <rank>10</rank>
+            </item>
+          </items>
+        </search>
+        <list>
+          <items>
+            <item id="name">
+              <rank>10</rank>
+            </item>
+          </items>
+        </list>
+      </presentation>
+    </class>
+    <class id="lnkDocumentToTicket" _delta="define">
+      <parent>cmdbAbstractObject</parent>
+      <properties>
+        <is_link>1</is_link>
+        <category>bizmodel</category>
+        <abstract>false</abstract>
+        <key_type>autoincrement</key_type>
+        <db_table>lnkdocumenttoticket</db_table>
+        <db_key_field>id</db_key_field>
+        <db_final_class_field/>
+        <naming>
+          <attributes>
+            <attribute id="ticket_id"/>
+            <attribute id="document_id"/>
+          </attributes>
+        </naming>
+        <display_template/>
+        <icon/>
+        <reconciliation>
+          <attributes>
+            <attribute id="ticket_id"/>
+            <attribute id="document_id"/>
+          </attributes>
+        </reconciliation>
+      </properties>
+      <fields>
+        <field id="ticket_id" xsi:type="AttributeExternalKey">
+          <sql>ticket_id</sql>
+          <target_class>Ticket</target_class>
+          <is_null_allowed>false</is_null_allowed>
+          <on_target_delete>DEL_AUTO</on_target_delete>
+        </field>
+        <field id="document_id" xsi:type="AttributeExternalKey">
+          <sql>document_id</sql>
+          <target_class>Document</target_class>
+          <is_null_allowed>false</is_null_allowed>
+          <on_target_delete>DEL_AUTO</on_target_delete>
+        </field>
+        <field id="document_type" xsi:type="AttributeExternalField">
+          <extkey_attcode>document_id</extkey_attcode>
+          <target_attcode>documenttype_name</target_attcode>
+        </field>
+      </fields>
+      <methods/>
+      <presentation>
+        <details>
+          <items>
+            <item id="ticket_id">
+              <rank>10</rank>
+            </item>
+            <item id="document_id">
+              <rank>20</rank>
+            </item>
+            <item id="document_type">
+              <rank>30</rank>
+            </item>
+          </items>
+        </details>
+        <search>
+          <items>
+            <item id="ticket_id">
+              <rank>10</rank>
+            </item>
+            <item id="document_id">
+              <rank>20</rank>
+            </item>
+            <item id="document_type">
+              <rank>30</rank>
+            </item>
+          </items>
+        </search>
+        <list>
+          <items>
+            <item id="ticket_id">
+              <rank>10</rank>
+            </item>
+            <item id="document_id">
+              <rank>20</rank>
+            </item>
+            <item id="document_type">
+              <rank>30</rank>
+            </item>
+          </items>
+        </list>
+      </presentation>
+    </class>
+    <class id="WorkOrder">
+      <fields>
+        <field id="ticket_org" xsi:type="AttributeExternalField" _delta="define">
+          <extkey_attcode>ticket_id</extkey_attcode>
+          <target_attcode>org_id</target_attcode>
+        </field>
+        <field id="ticket_caller" xsi:type="AttributeExternalField" _delta="define">
+          <extkey_attcode>ticket_id</extkey_attcode>
+          <target_attcode>caller_id</target_attcode>
+        </field>
+      </fields>
+      <presentation>
+        <details>
+          <items>
+            <item id="ticket_org" _delta="define">
+              <rank>32</rank>
+            </item>
+            <item id="ticket_caller" _delta="define">
+              <rank>34</rank>
+            </item>
+          </items>
+        </details>
+        <search>
+          <items>
+            <item id="ticket_org" _delta="define">
+              <rank>32</rank>
+            </item>
+            <item id="ticket_caller" _delta="define">
+              <rank>34</rank>
+            </item>
+          </items>
+        </search>
+        <list>
+          <items>
+            <item id="ticket_org" _delta="define">
+              <rank>22</rank>
+            </item>
+            <item id="ticket_caller" _delta="define">
+              <rank>24</rank>
+            </item>
+          </items>
+        </list>
+      </presentation>
+    </class>
+  </classes>
+  <menus>
+    <menu id="WorkOrderManagement" xsi:type="MenuGroup" _delta="define">
+      <rank>58</rank>
+    </menu>
+    <menu id="Calendar:Overview" xsi:type="DashboardMenuNode" _delta="define">
+      <rank>0</rank>
+      <parent>WorkOrderManagement</parent>
+      <definition>
+        <layout>DashboardLayoutOneCol</layout>
+        <title>UI:WorkOrderMgmtMenuOverview:Title</title>
+        <auto_reload>
+          <enabled>false</enabled>
+          <interval>300</interval>
+        </auto_reload>
+        <cells>
+          <cell id="0">
+            <rank>0</rank>
+            <dashlets>
+              <dashlet id="1" xsi:type="DashletCalendar">
+                <rank>0</rank>
+                <title>UI:WorkOrderCalendar:Title</title>
+                <query>SELECT WorkOrder</query>
+              </dashlet>
+            </dashlets>
+          </cell>
+          <cell id="1">
+            <rank>1</rank>
+            <dashlets>
+              <dashlet id="2" xsi:type="DashletEmptyCell">
+                <rank>0</rank>
+              </dashlet>
+            </dashlets>
+          </cell>
+        </cells>
+      </definition>
+    </menu>
+    <menu id="WorkOrderMgmt:Shortcuts" xsi:type="TemplateMenuNode" _delta="define">
+      <rank>5</rank>
+      <parent>WorkOrderManagement</parent>
+      <template_file/>
+    </menu>
+    <!-- <menu id="WorkOrderMgmt:NewWorkOrder" xsi:type="NewObjectMenuNode" _delta="define">
+      <rank>1</rank>
+      <parent>WorkOrderMgmt:Shortcuts</parent>
+      <class>WorkOrder</class>
+    </menu -->>
+    <menu id="WorkOrderMgmt:OpenWorkOrders" xsi:type="OQLMenuNode" _delta="define">
+      <rank>2</rank>
+      <parent>WorkOrderMgmt:Shortcuts</parent>
+      <oql><![CDATA[SELECT WorkOrder WHERE status IN ("open")]]></oql>
+      <do_search>1</do_search>
+    </menu>
+    <!-- <menu id="WorkOrderMgmt:MyWorkOrders" xsi:type="OQLMenuNode" _delta="define">
+      <rank>3</rank>
+      <parent>WorkOrderMgmt:Shortcuts</parent>
+      <oql><![CDATA[SELECT WorkOrder WHERE agent_id = :current_contact_id AND status NOT IN ("closed")]]></oql>
+      <do_search/>
+    </menu> -->
+    <menu id="WorkOrderMgmt:SearchWorkOrder" xsi:type="SearchMenuNode" _delta="define">
+      <rank>4</rank>
+      <parent>WorkOrderMgmt:Shortcuts</parent>
+      <class>WorkOrder</class>
+    </menu>
+    <menu id="ScheduledActivity:Shortcuts" xsi:type="TemplateMenuNode" _delta="define">
+      <rank>6</rank>
+      <parent>WorkOrderManagement</parent>
+      <template_file/>
+    </menu>
+    <menu id="ScheduledActivity:NewScheduledActivity" xsi:type="NewObjectMenuNode" _delta="define">
+      <rank>1</rank>
+      <parent>ScheduledActivity:Shortcuts</parent>
+      <class>ScheduledActivity</class>
+    </menu>
+    <menu id="ScheduledActivity:AllScheduledActivity" xsi:type="OQLMenuNode" _delta="define">
+      <rank>2</rank>
+      <parent>ScheduledActivity:Shortcuts</parent>
+      <oql><![CDATA[SELECT ScheduledActivity]]></oql>
+      <do_search>1</do_search>
+    </menu>
+  </menus>
+  <user_rights>
+    <groups>
+    </groups>
+    <profiles>
+    </profiles>
+  </user_rights>
+</itop_design>
